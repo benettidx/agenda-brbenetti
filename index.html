@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agenda @brbenetti</title>
+
+<style>
+:root {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --surface-2: #334155;
+  --border: #475569;
+  --text: #f8fafc;
+  --text-dim: #cbd5e1;
+  --text-mute: #94a3b8;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  overflow-x: hidden;
+}
+header {
+  padding: 20px 32px 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+}
+header h1 { margin: 0 0 4px; font-size: 22px; }
+header .sub { color: var(--text-mute); font-size: 13px; }
+.summary {
+  display: flex; gap: 16px; flex-wrap: wrap;
+  padding: 12px 32px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.summary .pill {
+  background: var(--surface-2);
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: var(--text-dim);
+}
+.summary .pill b { color: var(--text); }
+.legend {
+  display: flex; gap: 12px; flex-wrap: wrap;
+  padding: 10px 32px 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.legend .item { display: inline-flex; align-items: center; gap: 4px; }
+.legend .chip {
+  width: 12px; height: 12px; border-radius: 2px;
+  display: inline-block;
+}
+.months-nav {
+  padding: 10px 32px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; gap: 8px; align-items: center;
+}
+.months-nav button {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.15s;
+}
+.months-nav button:hover { background: var(--border); }
+.months-nav .current-month {
+  font-weight: 600;
+  margin-left: 8px;
+  font-size: 15px;
+}
+.months-container {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+.months-container::-webkit-scrollbar { display: none; }
+.month {
+  flex: 0 0 100vw;
+  scroll-snap-align: start;
+  padding: 20px 32px 40px;
+  min-height: calc(100vh - 220px);
+}
+.month h2 {
+  margin: 0 0 16px;
+  font-size: 24px;
+  color: var(--text);
+}
+table.calendar {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+table.calendar th {
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-weight: 500;
+  padding: 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid var(--border);
+}
+table.calendar td {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  vertical-align: top;
+  padding: 6px;
+  height: 130px;
+  width: 14.28%;
+  position: relative;
+}
+table.calendar td.empty { background: rgba(30, 41, 59, 0.4); }
+table.calendar td .day-num {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+table.calendar td.today { box-shadow: inset 0 0 0 2px #38bdf8; }
+.post-card {
+  background: rgba(51, 65, 85, 0.6);
+  padding: 5px 7px;
+  margin-bottom: 4px;
+  border-radius: 4px;
+  border-left: 3px solid #6b7280;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.15s;
+}
+.post-card:hover {
+  background: rgba(71, 85, 105, 0.9);
+}
+.post-card .time {
+  font-size: 10px;
+  color: var(--text-mute);
+}
+.post-card .title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.post-card .plats {
+  font-size: 11px;
+  margin-top: 2px;
+}
+.tooltip {
+  position: fixed;
+  background: #020617;
+  color: var(--text);
+  padding: 12px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  max-width: 340px;
+  font-size: 12px;
+  line-height: 1.5;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.tooltip.show { opacity: 1; }
+.tooltip .tip-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+.tooltip .tip-row {
+  display: flex; justify-content: space-between; gap: 12px;
+  color: var(--text-dim);
+  margin: 2px 0;
+}
+.tooltip .tip-row b { color: var(--text); font-weight: 500; }
+.tooltip .tip-file {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-family: monospace;
+  font-size: 10px;
+  color: var(--text-mute);
+  word-break: break-all;
+}
+</style>
+
+</head><body>
+<header>
+<h1>Agenda @brbenetti</h1>
+<div class="sub">Ultima atualizacao: 10/07/2026 as 10:06</div>
+</header>
+<div class="summary">
+<span class="pill"><b>164</b> posts</span>
+<span class="pill">📱 IG <b>40</b> publicados · <b>124</b> pendentes</span>
+<span class="pill">💼 LI <b>17</b>/<b>101</b> habilitados · <b>73</b> pendentes</span>
+</div>
+<div class="legend">
+<span class="item"><span class="chip" style="background:#0EA5E9"></span>🚀 App</span>
+<span class="item"><span class="chip" style="background:#F59E0B"></span>🎂 Especial</span>
+<span class="item"><span class="chip" style="background:#EF4444"></span>🛒 Comercial</span>
+<span class="item"><span class="chip" style="background:#10B981"></span>🎠 Info</span>
+<span class="item"><span class="chip" style="background:#3B82F6"></span>🎬 Filme</span>
+<span class="item"><span class="chip" style="background:#8B5CF6"></span>📺 Serie</span>
+<span class="item"><span class="chip" style="background:#F97316"></span>🎮 3D/CGI</span>
+<span class="item">🎥 Reel</span>
+<span class="item">📸 Story</span>
+<span class="item">🖼️ Carrossel</span>
+<span class="item">📱 IG</span>
+<span class="item">💼 LI</span>
+<span class="item">✅ pub · ⏳ agendado · ❌ falhou</span>
+</div>
+<div class="months-nav">
+<button class="nav-prev">← Anterior</button>
+<button class="nav-next">Proximo →</button>
+<span class="current-month"></span>
+</div>
+<div class="months-container">
+<section class="month" data-year="2026" data-month="7" data-label="Julho 2026">
+<h2>📅 Julho 2026</h2>
+<table class="calendar">
+<thead><tr>
+<th>Dom</th>
+<th>Seg</th>
+<th>Ter</th>
+<th>Qua</th>
+<th>Qui</th>
+<th>Sex</th>
+<th>Sab</th>
+</tr></thead><tbody>
+<tr>
+<td class="empty"></td>
+<td class="empty"></td>
+<td class="empty"></td>
+<td class="">
+<div class="day-num">1</div>
+</td>
+<td class="">
+<div class="day-num">2</div>
+</td>
+<td class="">
+<div class="day-num">3</div>
+</td>
+<td class="">
+<div class="day-num">4</div>
+</td>
+</tr>
+<tr>
+<td class="">
+<div class="day-num">5</div>
+</td>
+<td class="">
+<div class="day-num">6</div>
+</td>
+<td class="">
+<div class="day-num">7</div>
+</td>
+<td class="">
+<div class="day-num">8</div>
+</td>
+<td class="">
+<div class="day-num">9</div>
+<div class="post-card" style="border-left-color:#0EA5E9" data-tooltip="<div class=&quot;tip-title&quot;>🚀 Quanto Cobrar — Duelo do Orcamento (faroeste)</div><div class=&quot;tip-row&quot;><span>Data</span><b>09/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>22:06</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>App</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>qc-faroeste-duelo-orcamento.mp4</div>">
+<div class="time">22:06 · 🚀🎥</div>
+<div class="title">Quanto Cobrar - Duelo do Orcament…</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="today">
+<div class="day-num">10</div>
+<div class="post-card" style="border-left-color:#8B5CF6" data-tooltip="<div class=&quot;tip-title&quot;>📺 X-Men &#x27;97 T2 — X-BENETTI (traço de 97)</div><div class=&quot;tip-row&quot;><span>Data</span><b>10/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Serie</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>76-bruno-xmen97-cartoon-xbenetti-1080p-seedance.mp4</div>">
+<div class="time">18:00 · 📺🎥</div>
+<div class="title">X-Men &#x27;97 T2 - X-BENETTI (traço d…</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">11</div>
+<div class="post-card" style="border-left-color:#F97316" data-tooltip="<div class=&quot;tip-title&quot;>🎮 Cavaleiro Árvore Mágica 4K</div><div class=&quot;tip-row&quot;><span>Data</span><b>11/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>3D/CGI</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>66-bruno-cavaleiro-arvore-magica-4k-seedance.mp4</div>">
+<div class="time">18:00 · 🎮🎥</div>
+<div class="title">Cavaleiro Árvore Mágica 4K</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+</td>
+</tr>
+<tr>
+<td class="">
+<div class="day-num">12</div>
+<div class="post-card" style="border-left-color:#F97316" data-tooltip="<div class=&quot;tip-title&quot;>🎮 Cybersuit Nave China 4K</div><div class=&quot;tip-row&quot;><span>Data</span><b>12/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>3D/CGI</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>67-bruno-cybersuit-nave-china-4k-seedance.mp4</div>">
+<div class="time">18:00 · 🎮🎥</div>
+<div class="title">Cybersuit Nave China 4K</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">13</div>
+<div class="post-card" style="border-left-color:#F59E0B" data-tooltip="<div class=&quot;tip-title&quot;>🎂 Aniversário Bruno — John Wick Birthday (13/07)</div><div class=&quot;tip-row&quot;><span>Data</span><b>13/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>07:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Especial</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>82-bruno-john-wick-aniversario-720p-seedance.mp4</div>">
+<div class="time">07:00 · 🎂🎥</div>
+<div class="title">Aniversário Bruno - John Wick Bir…</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#3B82F6" data-tooltip="<div class=&quot;tip-title&quot;>🎬 Dune: Prophecy T2 — Cavalgando o Sandworm</div><div class=&quot;tip-row&quot;><span>Data</span><b>13/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Filme</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>77-bruno-dune-prophecy-sandworm-1080p-seedance.mp4</div>">
+<div class="time">18:00 · 🎬🎥</div>
+<div class="title">Dune: Prophecy T2 - Cavalgando o…</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">14</div>
+<div class="post-card" style="border-left-color:#3B82F6" data-tooltip="<div class=&quot;tip-title&quot;>🎬 Godfather — Vou fazer uma oferta</div><div class=&quot;tip-row&quot;><span>Data</span><b>14/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Filme</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>83-bruno-godfather-oferta-VOZ-REAL-720p-seedance.mp4</div>">
+<div class="time">18:00 · 🎬🎥</div>
+<div class="title">Godfather - Vou fazer uma oferta</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">15</div>
+<div class="post-card" style="border-left-color:#3B82F6" data-tooltip="<div class=&quot;tip-title&quot;>🎬 Fight Club — Primeira Regra</div><div class=&quot;tip-row&quot;><span>Data</span><b>15/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Filme</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>84-bruno-fightclub-primeira-regra-VOZ-REAL-720p-seedance.mp4</div>">
+<div class="time">18:00 · 🎬🎥</div>
+<div class="title">Fight Club - Primeira Regra</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">16</div>
+<div class="post-card" style="border-left-color:#EF4444" data-tooltip="<div class=&quot;tip-title&quot;>🛒 Fini Beijos - Comercial IA (Hypermotion)</div><div class=&quot;tip-row&quot;><span>Data</span><b>16/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Comercial</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>87-comercial-fini-beijos-hypermotion-v3-marketing-studio.mp4</div>">
+<div class="time">18:00 · 🛒🎥</div>
+<div class="title">Fini Beijos - Comercial IA (Hyper…</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">17</div>
+<div class="post-card" style="border-left-color:#0EA5E9" data-tooltip="<div class=&quot;tip-title&quot;>🚀 Quanto Cobrar — Boss Fight do Orcamento (pixel art)</div><div class=&quot;tip-row&quot;><span>Data</span><b>17/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>App</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>qc-pixelart-boss-fight.mp4</div>">
+<div class="time">18:00 · 🚀🎥</div>
+<div class="title">Quanto Cobrar - Boss Fight do Orc…</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">18</div>
+</td>
+</tr>
+<tr>
+<td class="">
+<div class="day-num">19</div>
+</td>
+<td class="">
+<div class="day-num">20</div>
+<div class="post-card" style="border-left-color:#F97316" data-tooltip="<div class=&quot;tip-title&quot;>🎮 Night Ops Tactical</div><div class=&quot;tip-row&quot;><span>Data</span><b>20/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>3D/CGI</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>21-night-ops-tactical-seedance.mp4</div>">
+<div class="time">18:00 · 🎮🎥</div>
+<div class="title">Night Ops Tactical</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#F97316" data-tooltip="<div class=&quot;tip-title&quot;>🎮 Story (C) → Night Ops Tactical</div><div class=&quot;tip-row&quot;><span>Data</span><b>20/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>3D/CGI</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S014-C-c4a0c45e.png</div>">
+<div class="time">20:30 · 🎮📸</div>
+<div class="title">Story (C) → Night Ops Tactical</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">21</div>
+<div class="post-card" style="border-left-color:#10B981" data-tooltip="<div class=&quot;tip-title&quot;>🎠 5 Sinais Cena Ia</div><div class=&quot;tip-row&quot;><span>Data</span><b>21/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Info</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🖼️ Carrossel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>7 arquivos em C007-5-sinais-cena-IA/</div>">
+<div class="time">18:00 · 🎠🖼️</div>
+<div class="title">5 Sinais Cena Ia</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#10B981" data-tooltip="<div class=&quot;tip-title&quot;>🎠 Story (D) → 5 Sinais Cena Ia</div><div class=&quot;tip-row&quot;><span>Data</span><b>21/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Info</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S015-D-fe22796e.png</div>">
+<div class="time">20:30 · 🎠📸</div>
+<div class="title">Story (D) → 5 Sinais Cena Ia</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">22</div>
+<div class="post-card" style="border-left-color:#F97316" data-tooltip="<div class=&quot;tip-title&quot;>🎮 Boxing Ring</div><div class=&quot;tip-row&quot;><span>Data</span><b>22/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>3D/CGI</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>22-boxing-ring-seedance.mp4</div>">
+<div class="time">18:00 · 🎮🎥</div>
+<div class="title">Boxing Ring</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#F97316" data-tooltip="<div class=&quot;tip-title&quot;>🎮 Story (B) → Boxing Ring</div><div class=&quot;tip-row&quot;><span>Data</span><b>22/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>3D/CGI</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S016-B-c6835949.png</div>">
+<div class="time">20:30 · 🎮📸</div>
+<div class="title">Story (B) → Boxing Ring</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">23</div>
+<div class="post-card" style="border-left-color:#F97316" data-tooltip="<div class=&quot;tip-title&quot;>🎮 Arctic Explorer</div><div class=&quot;tip-row&quot;><span>Data</span><b>23/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>3D/CGI</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>23-arctic-explorer-seedance.mp4</div>">
+<div class="time">18:00 · 🎮🎥</div>
+<div class="title">Arctic Explorer</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#F97316" data-tooltip="<div class=&quot;tip-title&quot;>🎮 Story (C) → Arctic Explorer</div><div class=&quot;tip-row&quot;><span>Data</span><b>23/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>3D/CGI</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S017-C-e87f1098.png</div>">
+<div class="time">20:30 · 🎮📸</div>
+<div class="title">Story (C) → Arctic Explorer</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">24</div>
+<div class="post-card" style="border-left-color:#10B981" data-tooltip="<div class=&quot;tip-title&quot;>🎠 Prompt Roteiro Tecnico</div><div class=&quot;tip-row&quot;><span>Data</span><b>24/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Info</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🖼️ Carrossel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>7 arquivos em C008-prompt-roteiro-tecnico/</div>">
+<div class="time">18:00 · 🎠🖼️</div>
+<div class="title">Prompt Roteiro Tecnico</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#10B981" data-tooltip="<div class=&quot;tip-title&quot;>🎠 Story (D) → Prompt Roteiro Tecnico</div><div class=&quot;tip-row&quot;><span>Data</span><b>24/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Info</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S018-D-22bde37b.png</div>">
+<div class="time">20:30 · 🎠📸</div>
+<div class="title">Story (D) → Prompt Roteiro Tecnico</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">25</div>
+<div class="post-card" style="border-left-color:#10B981" data-tooltip="<div class=&quot;tip-title&quot;>🎠 QUIZ — Qual desses 4 erros você ainda comete?</div><div class=&quot;tip-row&quot;><span>Data</span><b>25/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>14:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Info</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🖼️ Carrossel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>7 arquivos em Q003-erros-mais-comuns/</div>">
+<div class="time">14:00 · 🎠🖼️</div>
+<div class="title">QUIZ - Qual desses 4 erros você a…</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#F97316" data-tooltip="<div class=&quot;tip-title&quot;>🎮 Submarine Pilot + Kraken</div><div class=&quot;tip-row&quot;><span>Data</span><b>25/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>3D/CGI</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>24-submarine-pilot-seedance.mp4</div>">
+<div class="time">18:00 · 🎮🎥</div>
+<div class="title">Submarine Pilot + Kraken</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#F97316" data-tooltip="<div class=&quot;tip-title&quot;>🎮 Story (B) → Submarine Pilot + Kraken</div><div class=&quot;tip-row&quot;><span>Data</span><b>25/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>3D/CGI</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S019-B-82b9e9b7.png</div>">
+<div class="time">20:30 · 🎮📸</div>
+<div class="title">Story (B) → Submarine Pilot + Kra…</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+</tr>
+<tr>
+<td class="">
+<div class="day-num">26</div>
+<div class="post-card" style="border-left-color:#F97316" data-tooltip="<div class=&quot;tip-title&quot;>🎮 Gladiador no Coliseu</div><div class=&quot;tip-row&quot;><span>Data</span><b>26/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>3D/CGI</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>26-gladiador-coliseu-seedance.mp4</div>">
+<div class="time">18:00 · 🎮🎥</div>
+<div class="title">Gladiador no Coliseu</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#F97316" data-tooltip="<div class=&quot;tip-title&quot;>🎮 Story (C) → Gladiador no Coliseu</div><div class=&quot;tip-row&quot;><span>Data</span><b>26/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>3D/CGI</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S020-C-3c3333f1.png</div>">
+<div class="time">20:30 · 🎮📸</div>
+<div class="title">Story (C) → Gladiador no Coliseu</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">27</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Astronauta Apollo</div><div class=&quot;tip-row&quot;><span>Data</span><b>27/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>27-astronauta-apollo-lua-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Astronauta Apollo</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (D) → Astronauta Apollo</div><div class=&quot;tip-row&quot;><span>Data</span><b>27/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S021-D-6d26f4ba.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (D) → Astronauta Apollo</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">28</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Sora Veo Kling Comparativo</div><div class=&quot;tip-row&quot;><span>Data</span><b>28/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🖼️ Carrossel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>6 arquivos em C009-sora-veo-kling-comparativo/</div>">
+<div class="time">18:00 · 📌🖼️</div>
+<div class="title">Sora Veo Kling Comparativo</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (B) → Sora Veo Kling Comparativo</div><div class=&quot;tip-row&quot;><span>Data</span><b>28/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S022-B-43ba46bd.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (B) → Sora Veo Kling Compar…</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">29</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Astronauta Brasileiro com Lasers</div><div class=&quot;tip-row&quot;><span>Data</span><b>29/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>28-astronauta-lunar-rover-lasers-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Astronauta Brasileiro com Lasers</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (C) → Astronauta Brasileiro com Lase</div><div class=&quot;tip-row&quot;><span>Data</span><b>29/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S023-C-f193ec3a.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (C) → Astronauta Brasileiro…</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">30</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Cyberpunk Magnata</div><div class=&quot;tip-row&quot;><span>Data</span><b>30/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>30-cyberpunk-magnata-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Cyberpunk Magnata</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (D) → Cyberpunk Magnata</div><div class=&quot;tip-row&quot;><span>Data</span><b>30/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S024-D-b7df8ab0.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (D) → Cyberpunk Magnata</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">31</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 7 Ferramentas Substituem</div><div class=&quot;tip-row&quot;><span>Data</span><b>31/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🖼️ Carrossel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>7 arquivos em C010-7-ferramentas-substituem/</div>">
+<div class="time">18:00 · 📌🖼️</div>
+<div class="title">7 Ferramentas Substituem</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (B) → 7 Ferramentas Substituem</div><div class=&quot;tip-row&quot;><span>Data</span><b>31/07/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S025-B-c9a6b07b.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (B) → 7 Ferramentas Substit…</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="empty"></td>
+</tr>
+</tbody></table>
+</section>
+<section class="month" data-year="2026" data-month="8" data-label="Agosto 2026">
+<h2>📅 Agosto 2026</h2>
+<table class="calendar">
+<thead><tr>
+<th>Dom</th>
+<th>Seg</th>
+<th>Ter</th>
+<th>Qua</th>
+<th>Qui</th>
+<th>Sex</th>
+<th>Sab</th>
+</tr></thead><tbody>
+<tr>
+<td class="empty"></td>
+<td class="empty"></td>
+<td class="empty"></td>
+<td class="empty"></td>
+<td class="empty"></td>
+<td class="empty"></td>
+<td class="">
+<div class="day-num">1</div>
+<div class="post-card" style="border-left-color:#10B981" data-tooltip="<div class=&quot;tip-title&quot;>🎠 QUIZ — Qual cena é IA, qual é filmada?</div><div class=&quot;tip-row&quot;><span>Data</span><b>01/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>14:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Info</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🖼️ Carrossel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>7 arquivos em Q004-ia-ou-real/</div>">
+<div class="time">14:00 · 🎠🖼️</div>
+<div class="title">QUIZ - Qual cena é IA, qual é fil…</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Escalada de Geleira + Avalanche</div><div class=&quot;tip-row&quot;><span>Data</span><b>01/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>31-escalada-geleira-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Escalada de Geleira + Avalanche</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (C) → Escalada de Geleira + Avalanch</div><div class=&quot;tip-row&quot;><span>Data</span><b>01/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S026-C-9d09c4bd.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (C) → Escalada de Geleira +…</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+</tr>
+<tr>
+<td class="">
+<div class="day-num">2</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Piloto F1</div><div class=&quot;tip-row&quot;><span>Data</span><b>02/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>32-piloto-f1-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Piloto F1</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (D) → Piloto F1</div><div class=&quot;tip-row&quot;><span>Data</span><b>02/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S027-D-996b9d1e.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (D) → Piloto F1</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">3</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Surfista Mavericks</div><div class=&quot;tip-row&quot;><span>Data</span><b>03/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>33-surfista-mavericks-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Surfista Mavericks</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (B) → Surfista Mavericks</div><div class=&quot;tip-row&quot;><span>Data</span><b>03/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S028-B-ec4bd63b.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (B) → Surfista Mavericks</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">4</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Ia Mais Criativo Ou Preguicoso</div><div class=&quot;tip-row&quot;><span>Data</span><b>04/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🖼️ Carrossel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>7 arquivos em C011-ia-mais-criativo-ou-preguicoso/</div>">
+<div class="time">18:00 · 📌🖼️</div>
+<div class="title">Ia Mais Criativo Ou Preguicoso</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (C) → Ia Mais Criativo Ou Preguicoso</div><div class=&quot;tip-row&quot;><span>Data</span><b>04/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S029-C-348d3962.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (C) → Ia Mais Criativo Ou P…</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">5</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Mago de Gelo</div><div class=&quot;tip-row&quot;><span>Data</span><b>05/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>34-mago-gelo-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Mago de Gelo</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (D) → Mago de Gelo</div><div class=&quot;tip-row&quot;><span>Data</span><b>05/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S030-D-3f066dcd.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (D) → Mago de Gelo</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">6</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Astronauta vendo a Terra</div><div class=&quot;tip-row&quot;><span>Data</span><b>06/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>35-astronauta-lua-vendo-terra-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Astronauta vendo a Terra</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (B) → Astronauta vendo a Terra</div><div class=&quot;tip-row&quot;><span>Data</span><b>06/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S031-B-6ad33d27.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (B) → Astronauta vendo a Te…</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">7</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 7 Prompts Engana</div><div class=&quot;tip-row&quot;><span>Data</span><b>07/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🖼️ Carrossel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>7 arquivos em C012-7-prompts-engana/</div>">
+<div class="time">18:00 · 📌🖼️</div>
+<div class="title">7 Prompts Engana</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (C) → 7 Prompts Engana</div><div class=&quot;tip-row&quot;><span>Data</span><b>07/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S032-C-a11da4bb.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (C) → 7 Prompts Engana</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">8</div>
+<div class="post-card" style="border-left-color:#10B981" data-tooltip="<div class=&quot;tip-title&quot;>🎠 QUIZ — Qual lente pra retrato cinematográfico?</div><div class=&quot;tip-row&quot;><span>Data</span><b>08/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>14:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Info</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🖼️ Carrossel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>7 arquivos em Q005-qual-lente-retrato/</div>">
+<div class="time">14:00 · 🎠🖼️</div>
+<div class="title">QUIZ - Qual lente pra retrato cin…</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Cosmonauta em Marte</div><div class=&quot;tip-row&quot;><span>Data</span><b>08/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>36-cosmonauta-marte-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Cosmonauta em Marte</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (D) → Cosmonauta em Marte</div><div class=&quot;tip-row&quot;><span>Data</span><b>08/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S033-D-92ac2ec4.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (D) → Cosmonauta em Marte</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+</tr>
+<tr>
+<td class="">
+<div class="day-num">9</div>
+<div class="post-card" style="border-left-color:#8B5CF6" data-tooltip="<div class=&quot;tip-title&quot;>📺 HotD S3 Finale — Aemond em Vhagar</div><div class=&quot;tip-row&quot;><span>Data</span><b>09/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Serie</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>73-bruno-aemond-vhagar-rooks-rest-720p-seedance.mp4</div>">
+<div class="time">18:00 · 📺🎥</div>
+<div class="title">HotD S3 Finale - Aemond em Vhagar</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (B) → Volcano Cliff</div><div class=&quot;tip-row&quot;><span>Data</span><b>09/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S034-B-4fbf229e.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (B) → Volcano Cliff</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">10</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Helicopter Rappel</div><div class=&quot;tip-row&quot;><span>Data</span><b>10/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>54-helicopter-rappel-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Helicopter Rappel</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (C) → Helicopter Rappel</div><div class=&quot;tip-row&quot;><span>Data</span><b>10/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S035-C-9b57bfa5.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (C) → Helicopter Rappel</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">11</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Criatividade Musculo</div><div class=&quot;tip-row&quot;><span>Data</span><b>11/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🖼️ Carrossel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>6 arquivos em C013-criatividade-musculo/</div>">
+<div class="time">18:00 · 📌🖼️</div>
+<div class="title">Criatividade Musculo</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (D) → Criatividade Musculo</div><div class=&quot;tip-row&quot;><span>Data</span><b>11/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S036-D-d0f3b40e.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (D) → Criatividade Musculo</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">12</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Parkour Rooftop</div><div class=&quot;tip-row&quot;><span>Data</span><b>12/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>55-parkour-rooftop-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Parkour Rooftop</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (B) → Parkour Rooftop</div><div class=&quot;tip-row&quot;><span>Data</span><b>12/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S037-B-a19c5a98.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (B) → Parkour Rooftop</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">13</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Motocicleta no Wasteland</div><div class=&quot;tip-row&quot;><span>Data</span><b>13/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>56-motocicleta-wasteland-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Motocicleta no Wasteland</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (C) → Motocicleta no Wasteland</div><div class=&quot;tip-row&quot;><span>Data</span><b>13/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S038-C-28e85b5a.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (C) → Motocicleta no Wastel…</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">14</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Ideias Genericas</div><div class=&quot;tip-row&quot;><span>Data</span><b>14/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🖼️ Carrossel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>6 arquivos em C014-ideias-genericas/</div>">
+<div class="time">18:00 · 📌🖼️</div>
+<div class="title">Ideias Genericas</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (D) → Ideias Genericas</div><div class=&quot;tip-row&quot;><span>Data</span><b>14/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S039-D-9faa496a.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (D) → Ideias Genericas</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">15</div>
+<div class="post-card" style="border-left-color:#10B981" data-tooltip="<div class=&quot;tip-title&quot;>🎠 QUIZ — Qual cor de luz pra cena íntima?</div><div class=&quot;tip-row&quot;><span>Data</span><b>15/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>14:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Info</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🖼️ Carrossel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>7 arquivos em Q006-cor-de-luz-emocional/</div>">
+<div class="time">14:00 · 🎠🖼️</div>
+<div class="title">QUIZ - Qual cor de luz pra cena í…</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#3B82F6" data-tooltip="<div class=&quot;tip-title&quot;>🎬 Dune | Sandworm</div><div class=&quot;tip-row&quot;><span>Data</span><b>15/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Filme</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>57-dune-sandworm-seedance.mp4</div>">
+<div class="time">18:00 · 🎬🎥</div>
+<div class="title">Dune | Sandworm</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#3B82F6" data-tooltip="<div class=&quot;tip-title&quot;>🎬 Story (B) → Dune | Sandworm</div><div class=&quot;tip-row&quot;><span>Data</span><b>15/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Filme</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S040-B-bd138d8a.png</div>">
+<div class="time">20:30 · 🎬📸</div>
+<div class="title">Story (B) → Dune | Sandworm</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+</tr>
+<tr>
+<td class="">
+<div class="day-num">16</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Backrooms Yellow Corridor</div><div class=&quot;tip-row&quot;><span>Data</span><b>16/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>60-backrooms-yellow-corridor-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Backrooms Yellow Corridor</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (C) → Backrooms Yellow Corridor</div><div class=&quot;tip-row&quot;><span>Data</span><b>16/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S041-C-c39fa7aa.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (C) → Backrooms Yellow Corr…</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">17</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Disclosure Day (Spielberg) Trailer</div><div class=&quot;tip-row&quot;><span>Data</span><b>17/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>61-disclosure-day-spielberg-trailer-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Disclosure Day (Spielberg) Trailer</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (D) → Disclosure Day (Spielberg) Tra</div><div class=&quot;tip-row&quot;><span>Data</span><b>17/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S042-D-cca3374f.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (D) → Disclosure Day (Spiel…</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">18</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Bloqueio Criativo</div><div class=&quot;tip-row&quot;><span>Data</span><b>18/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🖼️ Carrossel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>6 arquivos em C015-bloqueio-criativo/</div>">
+<div class="time">18:00 · 📌🖼️</div>
+<div class="title">Bloqueio Criativo</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (B) → Bloqueio Criativo</div><div class=&quot;tip-row&quot;><span>Data</span><b>18/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S043-B-149696fb.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (B) → Bloqueio Criativo</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">19</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Good Luck Have Fun Don&#x27;t Die (Verbinski) Trailer</div><div class=&quot;tip-row&quot;><span>Data</span><b>19/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>62-good-luck-have-fun-trailer-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Good Luck Have Fun Don&#x27;t Die (Ver…</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (C) → Good Luck Have Fun Don&#x27;t Die (</div><div class=&quot;tip-row&quot;><span>Data</span><b>19/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S044-C-444ee868.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (C) → Good Luck Have Fun Do…</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">20</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Backrooms Monumental</div><div class=&quot;tip-row&quot;><span>Data</span><b>20/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>63-backrooms-monumental-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Backrooms Monumental</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (D) → Backrooms Monumental</div><div class=&quot;tip-row&quot;><span>Data</span><b>20/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S045-D-3d81b2a4.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (D) → Backrooms Monumental</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">21</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Ia Expoe Visao</div><div class=&quot;tip-row&quot;><span>Data</span><b>21/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🖼️ Carrossel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>7 arquivos em C016-ia-expoe-visao/</div>">
+<div class="time">18:00 · 📌🖼️</div>
+<div class="title">Ia Expoe Visao</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (B) → Ia Expoe Visao</div><div class=&quot;tip-row&quot;><span>Data</span><b>21/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S046-B-e899eb71.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (B) → Ia Expoe Visao</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">22</div>
+<div class="post-card" style="border-left-color:#10B981" data-tooltip="<div class=&quot;tip-title&quot;>🎠 QUIZ — Qual diretor pediu essa cena?</div><div class=&quot;tip-row&quot;><span>Data</span><b>22/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>14:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Info</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🖼️ Carrossel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>7 arquivos em Q007-referencia-visual-diretor/</div>">
+<div class="time">14:00 · 🎠🖼️</div>
+<div class="title">QUIZ - Qual diretor pediu essa ce…</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Templário Sangrento</div><div class=&quot;tip-row&quot;><span>Data</span><b>22/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>64-templario-sangrento-cripta-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Templário Sangrento</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (C) → Templário Sangrento</div><div class=&quot;tip-row&quot;><span>Data</span><b>22/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S047-C-89d1a64c.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (C) → Templário Sangrento</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+</tr>
+<tr>
+<td class="">
+<div class="day-num">23</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Mecha de Favela (Rio Cyberpunk)</div><div class=&quot;tip-row&quot;><span>Data</span><b>23/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>71-mecha-favela-rio-v2-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Mecha de Favela (Rio Cyberpunk)</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (D) → Mecha de Favela (Rio Cyberpunk</div><div class=&quot;tip-row&quot;><span>Data</span><b>23/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S048-D-16cfa606.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (D) → Mecha de Favela (Rio…</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">24</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Monge Shaolin Mecha</div><div class=&quot;tip-row&quot;><span>Data</span><b>24/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>66-monge-shaolin-mecha-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Monge Shaolin Mecha</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (B) → Monge Shaolin Mecha</div><div class=&quot;tip-row&quot;><span>Data</span><b>24/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S049-B-3b5fd47b.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (B) → Monge Shaolin Mecha</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">25</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Exercicios Diretor</div><div class=&quot;tip-row&quot;><span>Data</span><b>25/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🖼️ Carrossel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>7 arquivos em C017-exercicios-diretor/</div>">
+<div class="time">18:00 · 📌🖼️</div>
+<div class="title">Exercicios Diretor</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (C) → Exercicios Diretor</div><div class=&quot;tip-row&quot;><span>Data</span><b>25/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S050-C-3e3503d9.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (C) → Exercicios Diretor</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">26</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Symbiote Bio-tech</div><div class=&quot;tip-row&quot;><span>Data</span><b>26/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>67-symbiote-biotech-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Symbiote Bio-tech</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (D) → Symbiote Bio-tech</div><div class=&quot;tip-row&quot;><span>Data</span><b>26/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S051-D-788feb9f.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (D) → Symbiote Bio-tech</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">27</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Armadura Imperial Chinesa (Wukong)</div><div class=&quot;tip-row&quot;><span>Data</span><b>27/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>68-armadura-imperial-chinesa-wukong-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Armadura Imperial Chinesa (Wukong)</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (B) → Armadura Imperial Chinesa (Wuk</div><div class=&quot;tip-row&quot;><span>Data</span><b>27/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S052-B-8865f337.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (B) → Armadura Imperial Chi…</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">28</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Filme Ia Nao Emociona</div><div class=&quot;tip-row&quot;><span>Data</span><b>28/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🖼️ Carrossel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>7 arquivos em C018-filme-ia-nao-emociona/</div>">
+<div class="time">18:00 · 📌🖼️</div>
+<div class="title">Filme Ia Nao Emociona</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (C) → Filme Ia Nao Emociona</div><div class=&quot;tip-row&quot;><span>Data</span><b>28/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S053-C-4f3f41cd.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (C) → Filme Ia Nao Emociona</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">29</div>
+<div class="post-card" style="border-left-color:#10B981" data-tooltip="<div class=&quot;tip-title&quot;>🎠 QUIZ — Qual movimento de câmera cria tensão?</div><div class=&quot;tip-row&quot;><span>Data</span><b>29/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>14:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Info</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🖼️ Carrossel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>7 arquivos em Q008-movimento-camera-tensao/</div>">
+<div class="time">14:00 · 🎠🖼️</div>
+<div class="title">QUIZ - Qual movimento de câmera c…</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Berserker Viking</div><div class=&quot;tip-row&quot;><span>Data</span><b>29/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>69-berserker-viking-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Berserker Viking</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (D) → Berserker Viking</div><div class=&quot;tip-row&quot;><span>Data</span><b>29/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S054-D-4d7b3f98.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (D) → Berserker Viking</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+</tr>
+<tr>
+<td class="">
+<div class="day-num">30</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Salvage Robot Tokyo</div><div class=&quot;tip-row&quot;><span>Data</span><b>30/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>72-salvage-robot-tokyo-v2-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Salvage Robot Tokyo</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (B) → Salvage Robot Tokyo</div><div class=&quot;tip-row&quot;><span>Data</span><b>30/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S055-B-3b69149f.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (B) → Salvage Robot Tokyo</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">31</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Power Armor Mineração Espacial</div><div class=&quot;tip-row&quot;><span>Data</span><b>31/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>73-power-armor-mineracao-espacial-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Power Armor Mineração Espacial</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (C) → Power Armor Mineração Espacial</div><div class=&quot;tip-row&quot;><span>Data</span><b>31/08/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S056-C-00fa944f.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (C) → Power Armor Mineração…</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="empty"></td>
+<td class="empty"></td>
+<td class="empty"></td>
+<td class="empty"></td>
+<td class="empty"></td>
+</tr>
+</tbody></table>
+</section>
+<section class="month" data-year="2026" data-month="9" data-label="Setembro 2026">
+<h2>📅 Setembro 2026</h2>
+<table class="calendar">
+<thead><tr>
+<th>Dom</th>
+<th>Seg</th>
+<th>Ter</th>
+<th>Qua</th>
+<th>Qui</th>
+<th>Sex</th>
+<th>Sab</th>
+</tr></thead><tbody>
+<tr>
+<td class="empty"></td>
+<td class="empty"></td>
+<td class="">
+<div class="day-num">1</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 3 Motes Diretor Moderno</div><div class=&quot;tip-row&quot;><span>Data</span><b>01/09/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🖼️ Carrossel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>6 arquivos em C019-3-motes-diretor-moderno/</div>">
+<div class="time">18:00 · 📌🖼️</div>
+<div class="title">3 Motes Diretor Moderno</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (D) → 3 Motes Diretor Moderno</div><div class=&quot;tip-row&quot;><span>Data</span><b>01/09/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S057-D-4f9a7382.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (D) → 3 Motes Diretor Moder…</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">2</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 The Boys, Butcher na White House</div><div class=&quot;tip-row&quot;><span>Data</span><b>02/09/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>74-the-boys-butcher-white-house-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">The Boys, Butcher na White House</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (B) → The Boys, Butcher na White Hou</div><div class=&quot;tip-row&quot;><span>Data</span><b>02/09/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S058-B-f579270c.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (B) → The Boys, Butcher na…</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">3</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 The Boys, Encontro com Homelander</div><div class=&quot;tip-row&quot;><span>Data</span><b>03/09/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>75-the-boys-homelander-confronto-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">The Boys, Encontro com Homelander</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (C) → The Boys, Encontro com Homelan</div><div class=&quot;tip-row&quot;><span>Data</span><b>03/09/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S059-C-bffa341d.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (C) → The Boys, Encontro co…</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">4</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Direcao Mais Importante</div><div class=&quot;tip-row&quot;><span>Data</span><b>04/09/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🖼️ Carrossel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>7 arquivos em C020-direcao-mais-importante/</div>">
+<div class="time">18:00 · 📌🖼️</div>
+<div class="title">Direcao Mais Importante</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (D) → Direcao Mais Importante</div><div class=&quot;tip-row&quot;><span>Data</span><b>04/09/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S060-D-c65301c3.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (D) → Direcao Mais Importan…</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">5</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Android Caindo do Arranha-Céu</div><div class=&quot;tip-row&quot;><span>Data</span><b>05/09/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>76-cyberpunk-android-falling-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Android Caindo do Arranha-Céu</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Story (B) → Android Caindo do Arranha-Céu</div><div class=&quot;tip-row&quot;><span>Data</span><b>05/09/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>20:30</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>📸 Story</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>S061-B-cf1f881c.png</div>">
+<div class="time">20:30 · 📌📸</div>
+<div class="title">Story (B) → Android Caindo do Arr…</div>
+<div class="plats">📱⏳ </div>
+</div>
+</td>
+</tr>
+<tr>
+<td class="">
+<div class="day-num">6</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Cowboy Velho Oeste 4K</div><div class=&quot;tip-row&quot;><span>Data</span><b>06/09/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>60-bruno-cowboy-velho-oeste-4k-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Cowboy Velho Oeste 4K</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">7</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Steampunk Mech Alps 4K</div><div class=&quot;tip-row&quot;><span>Data</span><b>07/09/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>61-bruno-steampunk-mech-alps-4k-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Steampunk Mech Alps 4K</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">8</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Volcano Cliff</div><div class=&quot;tip-row&quot;><span>Data</span><b>08/09/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>53-volcano-cliff-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Volcano Cliff</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">9</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Jinx Arcane 4K Gemini Omni</div><div class=&quot;tip-row&quot;><span>Data</span><b>09/09/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>68-jinx-arcane-4k-gemini-omni.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Jinx Arcane 4K Gemini Omni</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">10</div>
+</td>
+<td class="">
+<div class="day-num">11</div>
+</td>
+<td class="">
+<div class="day-num">12</div>
+<div class="post-card" style="border-left-color:#8B5CF6" data-tooltip="<div class=&quot;tip-title&quot;>📺 Cyberpunk Edgerunners S2 — Sandevistan</div><div class=&quot;tip-row&quot;><span>Data</span><b>12/09/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Serie</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>74-bruno-edgerunner-sandevistan-720p-seedance.mp4</div>">
+<div class="time">18:00 · 📺🎥</div>
+<div class="title">Cyberpunk Edgerunners S2 - Sandev…</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+</td>
+</tr>
+<tr>
+<td class="">
+<div class="day-num">13</div>
+</td>
+<td class="">
+<div class="day-num">14</div>
+</td>
+<td class="">
+<div class="day-num">15</div>
+<div class="post-card" style="border-left-color:#3B82F6" data-tooltip="<div class=&quot;tip-title&quot;>🎬 Resident Evil — Dentro do jogo (Umbrella Lab)</div><div class=&quot;tip-row&quot;><span>Data</span><b>15/09/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Filme</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>78-bruno-re-umbrella-lab-licker-1080p-seedance.mp4</div>">
+<div class="time">18:00 · 🎬🎥</div>
+<div class="title">Resident Evil - Dentro do jogo (U…</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">16</div>
+</td>
+<td class="">
+<div class="day-num">17</div>
+</td>
+<td class="">
+<div class="day-num">18</div>
+<div class="post-card" style="border-left-color:#3B82F6" data-tooltip="<div class=&quot;tip-title&quot;>🎬 Resident Evil (2026) — Bruno S.T.A.R.S.</div><div class=&quot;tip-row&quot;><span>Data</span><b>18/09/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Filme</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>75-bruno-stars-agent-mansion-720p-seedance.mp4</div>">
+<div class="time">18:00 · 🎬🎥</div>
+<div class="title">Resident Evil (2026) - Bruno S.T.…</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">19</div>
+<div class="post-card" style="border-left-color:#3B82F6" data-tooltip="<div class=&quot;tip-title&quot;>🎬 Resident Evil — Corte de cinema (Lab v2)</div><div class=&quot;tip-row&quot;><span>Data</span><b>19/09/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Filme</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>79-bruno-re-umbrella-lab-v2-1080p-seedance.mp4</div>">
+<div class="time">18:00 · 🎬🎥</div>
+<div class="title">Resident Evil - Corte de cinema (…</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+</td>
+</tr>
+<tr>
+<td class="">
+<div class="day-num">20</div>
+</td>
+<td class="">
+<div class="day-num">21</div>
+</td>
+<td class="">
+<div class="day-num">22</div>
+</td>
+<td class="">
+<div class="day-num">23</div>
+</td>
+<td class="">
+<div class="day-num">24</div>
+</td>
+<td class="">
+<div class="day-num">25</div>
+</td>
+<td class="">
+<div class="day-num">26</div>
+</td>
+</tr>
+<tr>
+<td class="">
+<div class="day-num">27</div>
+</td>
+<td class="">
+<div class="day-num">28</div>
+</td>
+<td class="">
+<div class="day-num">29</div>
+</td>
+<td class="">
+<div class="day-num">30</div>
+</td>
+<td class="empty"></td>
+<td class="empty"></td>
+<td class="empty"></td>
+</tr>
+</tbody></table>
+</section>
+<section class="month" data-year="2026" data-month="10" data-label="Outubro 2026">
+<h2>📅 Outubro 2026</h2>
+<table class="calendar">
+<thead><tr>
+<th>Dom</th>
+<th>Seg</th>
+<th>Ter</th>
+<th>Qua</th>
+<th>Qui</th>
+<th>Sex</th>
+<th>Sab</th>
+</tr></thead><tbody>
+<tr>
+<td class="empty"></td>
+<td class="empty"></td>
+<td class="empty"></td>
+<td class="empty"></td>
+<td class="">
+<div class="day-num">1</div>
+</td>
+<td class="">
+<div class="day-num">2</div>
+</td>
+<td class="">
+<div class="day-num">3</div>
+</td>
+</tr>
+<tr>
+<td class="">
+<div class="day-num">4</div>
+</td>
+<td class="">
+<div class="day-num">5</div>
+</td>
+<td class="">
+<div class="day-num">6</div>
+</td>
+<td class="">
+<div class="day-num">7</div>
+</td>
+<td class="">
+<div class="day-num">8</div>
+</td>
+<td class="">
+<div class="day-num">9</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Avatar Aang — Os 4 Elementos (traço Nickelodeon)</div><div class=&quot;tip-row&quot;><span>Data</span><b>09/10/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>80-bruno-avatar-aang-cartoon-1080p-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Avatar Aang - Os 4 Elementos (tra…</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">10</div>
+</td>
+</tr>
+<tr>
+<td class="">
+<div class="day-num">11</div>
+</td>
+<td class="">
+<div class="day-num">12</div>
+</td>
+<td class="">
+<div class="day-num">13</div>
+</td>
+<td class="">
+<div class="day-num">14</div>
+</td>
+<td class="">
+<div class="day-num">15</div>
+</td>
+<td class="">
+<div class="day-num">16</div>
+<div class="post-card" style="border-left-color:#6B7280" data-tooltip="<div class=&quot;tip-title&quot;>📌 Street Fighter — Bonus Stage do carro</div><div class=&quot;tip-row&quot;><span>Data</span><b>16/10/2026</b></div><div class=&quot;tip-row&quot;><span>Hora</span><b>18:00</b></div><div class=&quot;tip-row&quot;><span>Categoria</span><b>Outro</b></div><div class=&quot;tip-row&quot;><span>Formato</span><b>🎥 Reel</b></div><div class=&quot;tip-row&quot;><span>📱 Instagram</span><b>⏳ pending</b></div><div class=&quot;tip-row&quot;><span>💼 LinkedIn</span><b>⏳ pending</b></div><div class=&quot;tip-file&quot;>81-bruno-sf-bonus-stage-v2-1080p-seedance.mp4</div>">
+<div class="time">18:00 · 📌🎥</div>
+<div class="title">Street Fighter - Bonus Stage do c…</div>
+<div class="plats">📱⏳ 💼⏳ </div>
+</div>
+</td>
+<td class="">
+<div class="day-num">17</div>
+</td>
+</tr>
+<tr>
+<td class="">
+<div class="day-num">18</div>
+</td>
+<td class="">
+<div class="day-num">19</div>
+</td>
+<td class="">
+<div class="day-num">20</div>
+</td>
+<td class="">
+<div class="day-num">21</div>
+</td>
+<td class="">
+<div class="day-num">22</div>
+</td>
+<td class="">
+<div class="day-num">23</div>
+</td>
+<td class="">
+<div class="day-num">24</div>
+</td>
+</tr>
+<tr>
+<td class="">
+<div class="day-num">25</div>
+</td>
+<td class="">
+<div class="day-num">26</div>
+</td>
+<td class="">
+<div class="day-num">27</div>
+</td>
+<td class="">
+<div class="day-num">28</div>
+</td>
+<td class="">
+<div class="day-num">29</div>
+</td>
+<td class="">
+<div class="day-num">30</div>
+</td>
+<td class="">
+<div class="day-num">31</div>
+</td>
+</tr>
+</tbody></table>
+</section>
+</div>
+
+<script>
+(function() {
+  const container = document.querySelector('.months-container');
+  const monthLabel = document.querySelector('.current-month');
+  const months = Array.from(document.querySelectorAll('.month'));
+
+  function updateLabel() {
+    const idx = Math.round(container.scrollLeft / window.innerWidth);
+    const m = months[idx];
+    if (m) monthLabel.textContent = m.dataset.label || '';
+  }
+  container.addEventListener('scroll', updateLabel);
+  updateLabel();
+
+  document.querySelector('.nav-prev').addEventListener('click', () => {
+    const idx = Math.round(container.scrollLeft / window.innerWidth);
+    container.scrollTo({left: (idx - 1) * window.innerWidth, behavior: 'smooth'});
+  });
+  document.querySelector('.nav-next').addEventListener('click', () => {
+    const idx = Math.round(container.scrollLeft / window.innerWidth);
+    container.scrollTo({left: (idx + 1) * window.innerWidth, behavior: 'smooth'});
+  });
+
+  // Vai pro mes atual no boot
+  const now = new Date();
+  const target = months.findIndex(m => m.dataset.year == now.getFullYear() && m.dataset.month == (now.getMonth() + 1));
+  if (target >= 0) {
+    container.scrollTo({left: target * window.innerWidth, behavior: 'auto'});
+    setTimeout(updateLabel, 50);
+  }
+
+  // Tooltip
+  const tt = document.createElement('div');
+  tt.className = 'tooltip';
+  document.body.appendChild(tt);
+
+  document.addEventListener('mouseover', (e) => {
+    const card = e.target.closest('.post-card');
+    if (!card) return;
+    tt.innerHTML = card.dataset.tooltip;
+    tt.classList.add('show');
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!tt.classList.contains('show')) return;
+    const x = e.clientX + 14;
+    const y = e.clientY + 14;
+    const maxX = window.innerWidth - 360;
+    const maxY = window.innerHeight - tt.offsetHeight - 20;
+    tt.style.left = Math.min(x, maxX) + 'px';
+    tt.style.top = Math.min(y, maxY) + 'px';
+  });
+  document.addEventListener('mouseout', (e) => {
+    if (!e.target.closest('.post-card')) tt.classList.remove('show');
+  });
+})();
+</script>
+
+</body></html>
